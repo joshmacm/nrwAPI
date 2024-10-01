@@ -3,7 +3,7 @@ library(httr)
 
 #' NRW Telemetry API Request for custom endpoints and parameters
 #'
-#' This function sends a GET request to the NRW Telemetry API with support for query parameters and error handling.
+#' This function sends a GET request to the NRW Telemetry API with support for query parameters and basic error handling.
 #' @param endpoint String for specific endpoint of the api.
 #'
 #' @param api_key NRW Telemetry API key. String.
