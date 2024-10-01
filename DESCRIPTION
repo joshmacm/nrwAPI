@@ -1,11 +1,11 @@
 Package: nrwAPI
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Package for accessing the NRW Telemetry API
 Version: 0.1.0
 Authors@R: person("Macmillan", "Josh", email = "josh.macmillan97@icloud.com", role = c("aut", "cre"))
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Maintainer: Joshua Macmillan <josh.macmillan97@icloud.com>
+Description: Package for accessing the NRW Telemetry API
+
 Imports:
   httr, 
   jsonlite
