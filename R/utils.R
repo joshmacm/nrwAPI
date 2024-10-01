@@ -1,6 +1,7 @@
 library(jsonlite)
 library(httr)
 
+
 #' NRW Telemetry API Request for custom endpoints and parameters
 #'
 #' This function sends a GET request to the NRW Telemetry API with support for query parameters and basic error handling.
@@ -8,8 +9,10 @@ library(httr)
 #'
 #' @param api_key NRW Telemetry API key. String.
 #' @param query_params A list of key-value pairs for query parameters. Parameters must be strings.
+#' @importFrom utils URLencode
 #' @returns Parsed JSON response from the API
 #' @export
+#'
 nrw_api_request <- function(endpoint, api_key, query_params = list()) {
   base_url <- "https://api.naturalresources.wales/telemetry"
   url <- paste0(base_url, endpoint)

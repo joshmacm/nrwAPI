@@ -17,5 +17,5 @@ nrw_api_request(endpoint, api_key, query_params = list())
 Parsed JSON response from the API
 }
 \description{
-This function sends a GET request to the NRW Telemetry API with support for query parameters and error handling.
+This function sends a GET request to the NRW Telemetry API with support for query parameters and basic error handling.
 }
