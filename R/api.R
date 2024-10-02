@@ -59,6 +59,7 @@ nrw_station_measures <- function(api_key, station, type = NULL) {
   )
   # Only include measureType if type is not NULL
   if (!is.null(type)) {
+    type <- URLencode(type)
     params$measureType <- type
   }
   # Make the API request
