@@ -105,8 +105,9 @@ nrw_measure_values <- function(api_key, measure, start = NULL, end = NULL) {
   # Make the API request
   measure_data <- nrw_api_request(endpoint, api_key, params)
 
-  # Format datetime
-  measure_data$timestamp <- as.POSIXct(measure_data$timestamp)
+  # Format datetime and value
+  measure_data$timestamp <- as.POSIXct(measure_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
+  measure_data$value <- as.numeric(measure_data$value)
 
   # Return the retrieved data
   return(measure_data)
