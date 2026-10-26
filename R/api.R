@@ -59,7 +59,6 @@ nrw_station_measures <- function(api_key, station, type = NULL) {
   )
   # Only include measureType if type is not NULL
   if (!is.null(type)) {
-    type <- URLencode(type)
     params$measureType <- type
   }
   # Make the API request
@@ -69,44 +68,99 @@ nrw_station_measures <- function(api_key, station, type = NULL) {
 }
 
 
+#' Parse date-time parameter to POSIXct in UTC
+#' @noRd
+parse_date_time <- function(x, is_end = FALSE) {
+  if (is.null(x)) return(NULL)
+
+  if (inherits(x, "Date") && !inherits(x, "POSIXt")) {
+    if (is_end) {
+      x <- as.POSIXct(paste(format(x, "%Y-%m-%d"), "23:59:59"), tz = "UTC")
+    } else {
+      x <- as.POSIXct(paste(format(x, "%Y-%m-%d"), "00:00:00"), tz = "UTC")
+    }
+  } else if (is.character(x)) {
+    parsed <- tryCatch(as.POSIXct(x, tz = "UTC"), error = function(e) as.POSIXct(NA))
+    if (is.na(parsed)) {
+      stop("Could not parse date string: '", x, "'. Please provide a Date, POSIXct, or string in 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS' format.")
+    }
+    if (is_end && grepl("^[0-9]{4}-[0-9]{2}-[0-9]{2}$", trimws(x))) {
+      x <- as.POSIXct(paste(trimws(x), "23:59:59"), tz = "UTC")
+    } else {
+      x <- parsed
+    }
+  } else if (inherits(x, "POSIXt")) {
+    x <- as.POSIXct(format(x, "%Y-%m-%d %H:%M:%S"), tz = "UTC")
+  } else {
+    stop("Date parameters must be Date, POSIXct, POSIXlt, or character strings.")
+  }
+
+  return(x)
+}
+
+
 #' Return Values for a Specific Measure
 #' @param api_key NRW Telemetry API key. String.
 #' @description
 #' Returns values for a specific measure code. A time period can be provided to narrow the response. If no start or end date is provided then the default period is the preceding 24 hours from last value.
 #'
 #' @param measure String. Measure_id as given by nrw_station_measures.
-#' @param start Optional. Date/Datetime object. Start of period.
-#' @param end Optional. Date/Datetime object. End of period, leave blank to use current datetime.
+#' @param start Optional. Date, POSIXt, or character string (e.g. 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'). Start of period.
+#' @param end Optional. Date, POSIXt, or character string. End of period. If start is provided but end is omitted, defaults to current time. If end is provided but start is omitted, defaults to 24 hours prior to end.
 #' @returns data.frame with measureId, quality code, timestamp, value
 #' @export
 nrw_measure_values <- function(api_key, measure, start = NULL, end = NULL) {
   # Define the API endpoint
   endpoint <- "/api/readings"
-  measure <- URLencode(measure)
+
+  # Parse date/time inputs
+  start_dt <- parse_date_time(start, is_end = FALSE)
+  end_dt <- parse_date_time(end, is_end = TRUE)
+
+  # If only start date is provided, default end date to current time (UTC)
+  if (!is.null(start_dt) && is.null(end_dt)) {
+    end_dt <- as.POSIXct(Sys.time(), tz = "UTC")
+  } else if (is.null(start_dt) && !is.null(end_dt)) {
+    # If only end date is provided, default start date to 24 hours prior to end
+    start_dt <- end_dt - 86400
+  }
+
+  # Validate date ordering and range limit (NRW API requires date range < 1 year)
+  if (!is.null(start_dt) && !is.null(end_dt)) {
+    if (start_dt > end_dt) {
+      stop("`start` date cannot be after `end` date.")
+    }
+    if (as.numeric(difftime(end_dt, start_dt, units = "days")) >= 365) {
+      stop("The date range must cover less than one year.")
+    }
+  }
 
   # Initialize query parameters with the measure ID
   params <- list(measureId = measure)
 
-  # If both start and end dates are provided, add them to the parameters
-  if (!is.null(start) & !is.null(end)) {
-    start <- format(start, "%Y-%m-%dT%H:%M:%S")
-    end <- format(end, "%Y-%m-%dT%H:%M:%S")
-    params$start <- start
-    params$end <- end
-  }
-
-  # If only the start date is provided, use the current time as the end date
-  if (!is.null(start) & is.null(end)) {
-    start <- format(start, "%Y-%m-%dT%H:%M:%S")
-    params$start <- start
-    params$end <- format(Sys.time(), "%Y-%m-%dT%H:%M:%S")  # Format current time as a string
+  if (!is.null(start_dt) && !is.null(end_dt)) {
+    params$start <- format(start_dt, "%Y-%m-%dT%H:%M:%S")
+    params$end <- format(end_dt, "%Y-%m-%dT%H:%M:%S")
   }
 
   # Make the API request
   measure_data <- nrw_api_request(endpoint, api_key, params)
 
-  # Format datetime and value
-  measure_data$timestamp <- as.POSIXct(measure_data$timestamp, format = "%Y-%m-%d %H:%M:%S")
+  # Return an empty data.frame with proper column types if no data was returned
+  empty_df <- data.frame(
+    measureId = character(0),
+    quality = integer(0),
+    timestamp = as.POSIXct(character(0), tz = "UTC"),
+    value = numeric(0),
+    stringsAsFactors = FALSE
+  )
+
+  if (is.null(measure_data) || length(measure_data) == 0 || (is.data.frame(measure_data) && nrow(measure_data) == 0)) {
+    return(empty_df)
+  }
+
+  # Format datetime in UTC and value as numeric
+  measure_data$timestamp <- as.POSIXct(measure_data$timestamp, format = "%Y-%m-%d %H:%M:%S", tz = "UTC")
   measure_data$value <- as.numeric(measure_data$value)
 
   # Return the retrieved data

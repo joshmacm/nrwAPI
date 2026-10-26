@@ -11,9 +11,9 @@ nrw_measure_values(api_key, measure, start = NULL, end = NULL)
 
 \item{measure}{String. Measure_id as given by nrw_station_measures.}
 
-\item{start}{Optional. Date/Datetime object. Start of period.}
+\item{start}{Optional. Date, POSIXt, or character string (e.g. 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'). Start of period.}
 
-\item{end}{Optional. Date/Datetime object. End of period, leave blank to use current datetime.}
+\item{end}{Optional. Date, POSIXt, or character string. End of period. If start is provided but end is omitted, defaults to current time. If end is provided but start is omitted, defaults to 24 hours prior to end.}
 }
 \value{
 data.frame with measureId, quality code, timestamp, value
